@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendar — HabitForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-icon">🗓️</span>
+    <div><h1>Monthly Calendar</h1><p>See every day you showed up — click a day to log or undo it</p></div></div>
+</header>
+<nav class="navbar">
+  <a href="index.html">Habits</a>
+  <a href="calendar.html">Monthly Calendar</a>
+  <a href="/swagger-ui.html" target="_blank">API Docs</a>
+</nav>
+<main>
+  <section class="card">
+    <div class="cal-controls">
+      <div class="field" style="min-width:220px"><label>Habit</label><select id="habit" onchange="load()"></select></div>
+      <button class="btn btn-ghost" onclick="shift(-1)">◀ Prev</button>
+      <div class="cal-title" id="title"></div>
+      <button class="btn btn-ghost" onclick="shift(1)">Next ▶</button>
+      <button class="btn btn-ghost" onclick="goToday()">Today</button>
+    </div>
+    <div class="summary">
+      <div><strong id="sumRequired">0</strong><span>Required days</span></div>
+      <div><strong id="sumDone">0</strong><span>Completed</span></div>
+      <div><strong id="sumRate">0%</strong><span>Completion rate</span></div>
+      <div><strong id="sumStreak">0 🔥</strong><span>Current streak</span></div>
+      <div><strong id="sumBest">0 🏆</strong><span>Best streak</span></div>
+    </div>
+    <div class="cal-grid" id="grid"></div>
+    <div class="legend">
+      <span><i style="background:#d1fae5"></i>Completed</span>
+      <span><i style="background:#fee2e2"></i>Missed</span>
+      <span><i style="background:#fef3c7"></i>Due today</span>
+      <span><i style="background:#f3f4f6"></i>Not required</span>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast"></div>
+<script src="common.js"></script>
+<script>
+const API = "/api/habits";
+const $ = id => document.getElementById(id);
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+let year = new Date().getFullYear(), month = new Date().getMonth() + 1;
+
+async function init() {
+  const habits = (await apiFetch(API).catch(() => [])) || [];
+  $("habit").innerHTML = habits.map(h => `<option value="${h.id}">${h.name}</option>`).join("");
+  const wanted = new URLSearchParams(location.search).get("id");
+  if (wanted) $("habit").value = wanted;
+  if (habits.length === 0) { $("grid").innerHTML = "<p class='hint'>Create a habit first on the Habits page.</p>"; $("title").textContent = ""; return; }
+  load();
+}
+
+function shift(n) { month += n; if (month < 1) { month = 12; year--; } if (month > 12) { month = 1; year++; } load(); }
+function goToday() { year = new Date().getFullYear(); month = new Date().getMonth() + 1; load(); }
+
+async function load() {
+  const id = $("habit").value;
+  if (!id) return;
+  const cal = await apiFetch(`${API}/${id}/calendar?year=${year}&month=${month}`).catch(() => null);
+  if (!cal) return;
+  const streak = await apiFetch(`${API}/${id}/streak`).catch(() => null);
+  $("title").textContent = `${MONTHS[month - 1]} ${year}`;
+  $("sumRequired").textContent = cal.requiredDays;
+  $("sumDone").textContent = cal.completedDays;
+  $("sumRate").textContent = cal.completionRatePercent + "%";
+  if (streak) { $("sumStreak").textContent = streak.currentStreak + " 🔥"; $("sumBest").textContent = streak.bestStreak + " 🏆"; }
+
+  const dows = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join("");
+  const offset = (new Date(year, month - 1, 1).getDay() + 6) % 7;
+  for (let i = 0; i < offset; i++) html += `<div class="cal-cell cal-empty"></div>`;
+  const label = { COMPLETED: "Done", MISSED: "Missed", PENDING: "Due today", UPCOMING: "", NOT_REQUIRED: "Rest", BEFORE_START: "" };
+  cal.days.forEach(d => {
+    const dayNum = Number(d.date.slice(8));
+    const isToday = d.date === todayStr();
+    html += `<div class="cal-cell cal-${d.status} ${isToday ? "cal-today" : ""}" onclick="toggleDay('${d.date}','${d.status}')">
+      <span>${dayNum}</span><small>${label[d.status]}</small></div>`;
+  });
+  $("grid").innerHTML = html;
+}
+
+async function toggleDay(date, status) {
+  const id = $("habit").value;
+  if (status === "COMPLETED") {
+    if (!confirm(`Remove completion for ${date}?`)) return;
+    await apiFetch(`${API}/${id}/logs?date=${date}`, { method: "DELETE" });
+    showToast("Completion removed");
+  } else if (status === "MISSED" || status === "PENDING") {
+    await apiFetch(`${API}/${id}/logs`, { method: "POST", headers: JSON_H, body: JSON.stringify({ date }) });
+    showToast("Logged as done");
+  } else return;
+  load();
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HabitForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-icon">🔥</span>
+    <div><h1>HabitForge</h1><p>Build habits, keep your streak alive</p></div></div>
+  <div class="topbar-stats">
+    <div class="stat"><span class="stat-value" id="statHabits">0</span><span class="stat-label">Habits</span></div>
+    <div class="stat"><span class="stat-value" id="statDone">0/0</span><span class="stat-label">Done today</span></div>
+    <div class="stat"><span class="stat-value" id="statCurrent">0</span><span class="stat-label">Top streak</span></div>
+    <div class="stat"><span class="stat-value" id="statBest">0</span><span class="stat-label">Best ever</span></div>
+  </div>
+</header>
+<nav class="navbar">
+  <a href="index.html">Habits</a>
+  <a href="calendar.html">Monthly Calendar</a>
+  <a href="/swagger-ui.html" target="_blank">API Docs</a>
+</nav>
+<main>
+  <section class="card">
+    <div class="card-head"><h2>Today's Reminders</h2><span class="card-sub">Habits due today</span></div>
+    <div class="reminder-list" id="reminders"></div>
+  </section>
+
+  <div class="grid-2">
+    <section class="card">
+      <div class="card-head"><h2>New Habit</h2><span class="card-sub">Daily or specific weekdays</span></div>
+      <div class="form-row">
+        <div class="field"><label>Name</label><input id="name" placeholder="e.g. Read 20 pages"></div>
+        <div class="field"><label>Frequency</label>
+          <select id="frequency" onchange="toggleDays()">
+            <option value="DAILY">Every day</option>
+            <option value="SPECIFIC_WEEKDAYS">Specific weekdays</option>
+          </select></div>
+      </div>
+      <div class="field" style="margin-bottom:1rem"><label>Description (optional)</label><input id="description" placeholder="Why does this habit matter?"></div>
+      <div class="field" id="daysBox" style="display:none;margin-bottom:1rem"><label>Weekdays</label>
+        <div class="chips" id="dayChips"></div></div>
+      <div class="field small" style="margin-bottom:1rem"><label>Start date (optional)</label><input id="startDate" type="date"></div>
+      <p class="hint">Leave start date empty to begin today. A past date lets you back-fill and test streaks.</p>
+      <button class="btn btn-primary" onclick="createHabit()"><span>＋</span> Create Habit</button>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Log a Day</h2><span class="card-sub">Mark any past or current day as done</span></div>
+      <div class="form-row">
+        <div class="field"><label>Habit</label><select id="logHabit"></select></div>
+        <div class="field small"><label>Date</label><input id="logDate" type="date"></div>
+      </div>
+      <div class="field" style="margin-bottom:1rem"><label>Note (optional)</label><input id="logNote" placeholder="How did it go?"></div>
+      <button class="btn btn-primary" onclick="logDay()"><span>✅</span> Log as Done</button>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="card-head"><h2>My Habits</h2><span class="card-sub">Current and best streaks</span>
+      <button class="btn btn-ghost refresh-btn" onclick="checkMissed()">⟳ Check missed days</button></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Habit</th><th>Schedule</th><th>Current</th><th>Best</th><th>Today</th><th>Actions</th></tr></thead>
+      <tbody id="rows"></tbody></table>
+      <div class="empty-state" id="empty">No habits yet — create your first one above.</div>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast"></div>
+<script src="common.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
